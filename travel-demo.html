@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能旅行助手</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script>
+tailwind.config = {
+theme: {
+extend: {
+colors: {
+primary: '#4F46E5',
+secondary: '#6366F1'
+},
+borderRadius: {
+'none': '0px',
+'sm': '4px',
+DEFAULT: '8px',
+'md': '12px',
+'lg': '16px',
+'xl': '20px',
+'2xl': '24px',
+'3xl': '32px',
+'full': '9999px',
+'button': '8px'
+}
+}
+}
+}
+</script>
+<style>
+:where([class^="ri-"])::before { content: "\f3c2"; }
+.chat-message {
+max-height: 0;
+overflow: hidden;
+transition: max-height 0.3s ease-out;
+}
+.chat-message.show {
+max-height: 500px;
+}
+.destination-card:hover .destination-overlay {
+opacity: 1;
+}
+#domesticContent, #internationalContent {
+transition: opacity 0.3s ease;
+}
+.relative.group {
+transition: opacity 0.3s ease;
+}
+</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<nav class="bg-white shadow-sm">
+<div class="max-w-7xl mx-auto px-4">
+<div class="flex justify-between h-16">
+<div class="flex items-center">
+<a href="#" class="text-2xl font-['Pacifico'] text-primary">logo</a>
+<div class="hidden md:flex space-x-8 ml-10">
+<a href="#" class="text-gray-900 hover:text-primary px-3 py-2 text-sm font-medium">首页</a>
+<a href="#" class="text-gray-900 hover:text-primary px-3 py-2 text-sm font-medium">路线规划</a>
+<a href="#" class="text-gray-900 hover:text-primary px-3 py-2 text-sm font-medium">目的地</a>
+<a href="#" class="text-gray-900 hover:text-primary px-3 py-2 text-sm font-medium">社区</a>
+<a href="#" class="text-gray-900 hover:text-primary px-3 py-2 text-sm font-medium">我的行程</a>
+</div>
+</div>
+<div class="flex items-center space-x-4">
+<button class="w-8 h-8 flex items-center justify-center">
+<i class="ri-notification-3-line text-gray-600"></i>
+</button>
+<div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer">
+<i class="ri-user-line text-gray-600"></i>
+</div>
+</div>
+</div>
+</div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 py-8">
+<div class="flex gap-6">
+<div class="w-3/4">
+<div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+<div class="relative">
+<input type="text" id="travelInput" placeholder="告诉我您的旅行计划，例如：我想带父母去云南玩5天，预算1万" class="w-full px-4 py-3 text-gray-700 bg-gray-50 rounded focus:outline-none focus:ring-2 focus:ring-primary/20">
+<button onclick="startPlanning()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white px-4 py-2 rounded-button flex items-center space-x-2 cursor-pointer">
+<i class="ri-send-plane-fill"></i>
+<span>开始规划</span>
+</button>
+</div>
+<div id="chatContainer" class="mt-4 space-y-4 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-gray-50"></div>
+</div>
+
+<script>
+let chatHistory = [];
+
+async function startPlanning() {
+  const input = document.getElementById('travelInput');
+  const chatContainer = document.getElementById('chatContainer');
+  const userMessage = input.value.trim();
+  
+  if (!userMessage) return;
+
+  // 添加用户消息到历史记录
+  chatHistory.push({ role: "user", content: userMessage });
+  appendMessage('user', userMessage);
+  input.value = '';
+
+  // 显示加载状态
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'flex items-center text-gray-500 text-sm';
+  loadingDiv.innerHTML = '<i class="ri-loader-4-line animate-spin mr-2"></i>AI 正在规划中...';
+  chatContainer.appendChild(loadingDiv);
+
+  try {
+    const response = await fetch("http://180.184.175.69:3000/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer sk-3suUMcrhp3ghB4XWshKlBqZHnmkoDYRuX9XK8ua8wKJcaRbv`
+      },
+      body: JSON.stringify({
+        model: "DeepSeek-V3",
+        messages: [
+          // 系统提示词放在最前面
+          {
+            role: "system",
+            content: "你的名字叫“小铎”，你是一个精通旅行路线设计的AI，请按照用户的要求来辅助用户完成与旅游相关的问题。如果用户提问其他问题，也请量力回答。回答请使用中文并使用Markdown格式。"
+          },
+          // 追加历史对话记录
+          ...chatHistory
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    });
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+    const data = await response.json();
+    const aiResponse = data.choices[0]?.message?.content || "未能生成有效回复";
+
+    // 添加AI回复到历史记录
+    chatHistory.push({ role: "assistant", content: aiResponse });
+    
+    loadingDiv.remove();
+    appendMessage("assistant", aiResponse);
+
+  } catch (error) {
+    console.error('请求失败:', error);
+    // 发生错误时回滚用户消息
+    chatHistory = chatHistory.filter(msg => msg.role !== "user");
+    loadingDiv.remove();
+    appendMessage('system', `服务暂时不可用：${error.message}`);
+  }
+}
+function appendMessage(role, content) {
+              const chatContainer = document.getElementById("chatContainer");
+              const messageDiv = document.createElement("div");
+              const isUser = role === "user";
+              // 添加marked.js用于markdown解析
+              if (!window.marked) {
+                const script = document.createElement("script");
+                script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
+                document.head.appendChild(script);
+              }
+              // 添加highlight.js用于代码高亮
+              if (!document.querySelector('link[href*="highlight"]')) {
+                const link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.href =
+                  "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css";
+                document.head.appendChild(link);
+                const script = document.createElement("script");
+                script.src =
+                  "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js";
+                document.head.appendChild(script);
+              }
+              messageDiv.className = `flex ${isUser ? "justify-end" : "justify-start"} mb-4`;
+              // 等待marked和highlight.js加载完成
+              const renderContent = () => {
+                if (!window.marked || !window.hljs) {
+                  setTimeout(renderContent, 100);
+                  return;
+                }
+                // 配置marked选项
+                marked.setOptions({
+                  highlight: function (code, lang) {
+                    return hljs.highlightAuto(code).value;
+                  },
+                  breaks: true,
+                });
+                // 渲染markdown内容
+                const renderedContent = marked.parse(content);
+                messageDiv.innerHTML = `
+            <div class="max-w-[80%] ${isUser ? "bg-primary text-white" : "bg-gray-100"} rounded-lg px-4 py-2">
+            <div class="flex items-center gap-2 mb-1">
+            ${
+              isUser
+                ? '<span class="text-sm">我</span><i class="ri-user-line"></i>'
+                : '<i class="ri-robot-line text-primary"></i><span class="text-sm">AI 小铎</span>'
+            }
+            </div>
+            <div class="text-sm markdown-content ${!isUser ? "prose prose-sm max-w-none" : ""}">${renderedContent}</div>
+            </div>
+            `;
+                // 添加markdown样式
+                if (!isUser) {
+                  const style = document.createElement("style");
+                  style.textContent = `
+            .markdown-content {
+            line-height: 1.6;
+            }
+            .markdown-content p {
+            margin: 0.5em 0;
+            }
+            .markdown-content pre {
+            background: #f6f8fa;
+            border-radius: 6px;
+            padding: 1em;
+            overflow-x: auto;
+            margin: 0.5em 0;
+            }
+            .markdown-content code {
+            background: #f6f8fa;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-size: 0.9em;
+            }
+            .markdown-content pre code {
+            background: none;
+            padding: 0;
+            }
+            .markdown-content ul, .markdown-content ol {
+            padding-left: 1.5em;
+            margin: 0.5em 0;
+            }
+            .markdown-content blockquote {
+            border-left: 4px solid #e5e7eb;
+            padding-left: 1em;
+            margin: 0.5em 0;
+            color: #6b7280;
+            }
+            .markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0.5em 0;
+            }
+            .markdown-content th, .markdown-content td {
+            border: 1px solid #e5e7eb;
+            padding: 0.5em;
+            text-align: left;
+            }
+            .markdown-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 0.5em 0;
+            }
+            `;
+                  document.head.appendChild(style);
+                }
+                // 代码高亮
+                messageDiv.querySelectorAll("pre code").forEach((block) => {
+                  hljs.highlightBlock(block);
+                });
+              };
+              renderContent();
+              chatContainer.appendChild(messageDiv);
+              chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+// 支持回车发送
+document.getElementById('travelInput').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    startPlanning();
+  }
+});
+</script>
+<div class="grid grid-cols-2 gap-6 mb-6">
+<div class="bg-white rounded-lg shadow-sm p-6">
+<h3 class="text-lg font-medium mb-4">热门路线</h3>
+<div class="space-y-4">
+<div class="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 p-2 rounded">
+<img src="https://public.readdy.ai/ai/img_res/47e5eb1078dc18c1ccaaa50c8dcfc71f.jpg" class="w-20 h-20 rounded object-cover">
+<div>
+<h4 class="font-medium">云南大理 5 日游</h4>
+<p class="text-sm text-gray-500">深度体验苍山洱海，感受白族风情</p>
+<div class="flex items-center space-x-2 mt-2">
+<span class="text-sm text-primary">¥ 3,999 起</span>
+<span class="text-xs text-gray-400">已有 2,345 人出行</span>
+</div>
+</div>
+</div>
+<div class="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 p-2 rounded">
+<img src="https://public.readdy.ai/ai/img_res/16b6f56fb4c9adb22dc4abd3b8e9dc75.jpg" class="w-20 h-20 rounded object-cover">
+<div>
+<h4 class="font-medium">黄山 3 日游</h4>
+<p class="text-sm text-gray-500">登临黄山之巅，观云海日出</p>
+<div class="flex items-center space-x-2 mt-2">
+<span class="text-sm text-primary">¥ 2,599 起</span>
+<span class="text-xs text-gray-400">已有 1,876 人出行</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-lg shadow-sm p-6">
+<h3 class="text-lg font-medium mb-4">季节推荐</h3>
+<div class="space-y-4">
+<div class="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 p-2 rounded">
+<img src="https://public.readdy.ai/ai/img_res/03e707b3f33d0330f01496a00e36db55.jpg" class="w-20 h-20 rounded object-cover">
+<div>
+<h4 class="font-medium">武汉赏樱之旅</h4>
+<p class="text-sm text-gray-500">东湖樱花园，春日浪漫之旅</p>
+<div class="flex items-center space-x-2 mt-2">
+<span class="text-sm text-primary">¥ 1,999 起</span>
+<span class="text-xs text-gray-400">春季限定</span>
+</div>
+</div>
+</div>
+<div class="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 p-2 rounded">
+<img src="https://public.readdy.ai/ai/img_res/c05b97f491bb215aa274d9e1307e9669.jpg" class="w-20 h-20 rounded object-cover">
+<div>
+<h4 class="font-medium">三亚度假之旅</h4>
+<p class="text-sm text-gray-500">阳光沙滩，热带风情</p>
+<div class="flex items-center space-x-2 mt-2">
+<span class="text-sm text-primary">¥ 4,599 起</span>
+<span class="text-xs text-gray-400">避暑胜地</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-lg shadow-sm p-6">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-lg font-medium">目的地推荐</h3>
+<div class="flex space-x-2">
+<button id="domestic" class="px-4 py-2 text-sm rounded-button bg-primary text-white">国内</button>
+<button id="international" class="px-4 py-2 text-sm rounded-button border border-gray-200 hover:bg-gray-50">国际</button>
+</div>
+</div>
+<div class="flex space-x-3 mb-6">
+<button class="px-3 py-1 text-sm rounded-full bg-primary/10 text-primary">历史文化</button>
+<button class="px-3 py-1 text-sm rounded-full border border-gray-200">自然风光</button>
+<button class="px-3 py-1 text-sm rounded-full border border-gray-200">美食购物</button>
+<button class="px-3 py-1 text-sm rounded-full border border-gray-200">度假休闲</button>
+</div>
+<div id="domesticContent" class="grid grid-cols-4 gap-6">
+<div class="relative group cursor-pointer">
+<img src="https://public.readdy.ai/ai/img_res/b00ba1ba8f5c5182601d4ae0fb5cc560.jpg" class="w-full h-80 rounded-lg object-cover">
+<div class="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="text-white">
+<h4 class="font-medium">上海</h4>
+<p class="text-sm">现代魅力之都</p>
+<span class="inline-block mt-2 text-xs px-2 py-1 bg-white/20 rounded-full">美食购物</span>
+</div>
+</div>
+</div>
+<div class="relative group cursor-pointer">
+<img src="https://public.readdy.ai/ai/img_res/42cb60014f63ee0ec5546c8bef5cdf92.jpg" class="w-full h-80 rounded-lg object-cover">
+<div class="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="text-white">
+<h4 class="font-medium">北京</h4>
+<p class="text-sm">古都文化之旅</p>
+<span class="inline-block mt-2 text-xs px-2 py-1 bg-white/20 rounded-full">历史文化</span>
+</div>
+</div>
+</div>
+<div class="relative group cursor-pointer">
+<img src="https://public.readdy.ai/ai/img_res/f34ed7044ec3d196dba36cd82409834a.jpg" class="w-full h-80 rounded-lg object-cover">
+<div class="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="text-white">
+<h4 class="font-medium">成都</h4>
+<p class="text-sm">休闲美食之都</p>
+<span class="inline-block mt-2 text-xs px-2 py-1 bg-white/20 rounded-full">美食购物</span>
+</div>
+</div>
+</div>
+<div class="relative group cursor-pointer">
+<img src="https://public.readdy.ai/ai/img_res/b5a6ff1bfde7b1175281db6b3fd6cc7b.jpg" class="w-full h-80 rounded-lg object-cover">
+<div class="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="text-white">
+<h4 class="font-medium">桂林</h4>
+<p class="text-sm">山水画廊胜地</p>
+<span class="inline-block mt-2 text-xs px-2 py-1 bg-white/20 rounded-full">自然风光</span>
+</div>
+</div>
+</div>
+</div>
+<div id="internationalContent" class="grid grid-cols-4 gap-6 hidden">
+<div class="relative group cursor-pointer">
+<img src="https://public.readdy.ai/ai/img_res/0084dfc3cfc85b60b80bc1c2907515f8.jpg" class="w-full h-80 rounded-lg object-cover">
+<div class="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="text-white">
+<h4 class="font-medium">东京</h4>
+<p class="text-sm">现代科技之都</p>
+<span class="inline-block mt-2 text-xs px-2 py-1 bg-white/20 rounded-full">美食购物</span>
+</div>
+</div>
+</div>
+<div class="relative group cursor-pointer">
+<img src="https://public.readdy.ai/ai/img_res/5d6347aa2f0f7f95fc74deecb08f2243.jpg" class="w-full h-80 rounded-lg object-cover">
+<div class="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="text-white">
+<h4 class="font-medium">巴黎</h4>
+<p class="text-sm">浪漫艺术之都</p>
+<span class="inline-block mt-2 text-xs px-2 py-1 bg-white/20 rounded-full">历史文化</span>
+</div>
+</div>
+</div>
+<div class="relative group cursor-pointer">
+<img src="https://public.readdy.ai/ai/img_res/563a77a8ff4f0d1a80caf4a12d22e760.jpg" class="w-full h-80 rounded-lg object-cover">
+<div class="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="text-white">
+<h4 class="font-medium">马尔代夫</h4>
+<p class="text-sm">热带度假天堂</p>
+<span class="inline-block mt-2 text-xs px-2 py-1 bg-white/20 rounded-full">度假休闲</span>
+</div>
+</div>
+</div>
+<div class="relative group cursor-pointer">
+<img src="https://public.readdy.ai/ai/img_res/31b304d3b7f265051c9ff4f7bbc83b85.jpg" class="w-full h-80 rounded-lg object-cover">
+<div class="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="text-white">
+<h4 class="font-medium">纽约</h4>
+<p class="text-sm">国际大都会</p>
+<span class="inline-block mt-2 text-xs px-2 py-1 bg-white/20 rounded-full">美食购物</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="w-1/4">
+<div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+<h3 class="text-lg font-medium mb-4">快捷工具</h3>
+<div class="space-y-4">
+<button class="w-full flex items-center space-x-3 px-4 py-3 rounded-button border border-gray-200 hover:bg-gray-50">
+<i class="ri-calculator-line text-primary"></i>
+<span>预算计算器</span>
+</button>
+<button class="w-full flex items-center space-x-3 px-4 py-3 rounded-button border border-gray-200 hover:bg-gray-50">
+<i class="ri-list-check-2-line text-primary"></i>
+<span>行李清单</span>
+</button>
+<button class="w-full flex items-center space-x-3 px-4 py-3 rounded-button border border-gray-200 hover:bg-gray-50">
+<i class="ri-ticket-2-line text-primary"></i>
+<span>票务预订</span>
+</button>
+</div>
+</div>
+<div class="bg-white rounded-lg shadow-sm p-6">
+<h3 class="text-lg font-medium mb-4">同行人员</h3>
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+<i class="ri-user-line text-primary"></i>
+</div>
+<div>
+<h4 class="font-medium">于正非</h4>
+<p class="text-sm text-gray-500">组织者</p>
+</div>
+</div>
+<i class="ri-more-line cursor-pointer"></i>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+<i class="ri-user-line text-gray-400"></i>
+</div>
+<div>
+<h4 class="font-medium">于正非</h4>
+<p class="text-sm text-gray-500">成员</p>
+</div>
+</div>
+<i class="ri-more-line cursor-pointer"></i>
+</div>
+<button class="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-button border border-dashed border-gray-200 hover:bg-gray-50">
+<i class="ri-add-line"></i>
+<span>邀请成员</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+const domesticBtn = document.getElementById('domestic');
+const internationalBtn = document.getElementById('international');
+const domesticContent = document.getElementById('domesticContent');
+const internationalContent = document.getElementById('internationalContent');
+function switchContent(showDomestic) {
+const fadeOut = showDomestic ? internationalContent : domesticContent;
+const fadeIn = showDomestic ? domesticContent : internationalContent;
+fadeOut.style.opacity = '1';
+fadeOut.style.transition = 'opacity 0.3s ease-out';
+fadeOut.style.opacity = '0';
+setTimeout(() => {
+fadeOut.classList.add('hidden');
+fadeIn.classList.remove('hidden');
+fadeIn.style.opacity = '0';
+requestAnimationFrame(() => {
+fadeIn.style.transition = 'opacity 0.3s ease-in';
+fadeIn.style.opacity = '1';
+});
+}, 300);
+if(showDomestic) {
+domesticBtn.classList.remove('border', 'border-gray-200', 'hover:bg-gray-50');
+domesticBtn.classList.add('bg-primary', 'text-white');
+internationalBtn.classList.remove('bg-primary', 'text-white');
+internationalBtn.classList.add('border', 'border-gray-200', 'hover:bg-gray-50');
+} else {
+internationalBtn.classList.remove('border', 'border-gray-200', 'hover:bg-gray-50');
+internationalBtn.classList.add('bg-primary', 'text-white');
+domesticBtn.classList.remove('bg-primary', 'text-white');
+domesticBtn.classList.add('border', 'border-gray-200', 'hover:bg-gray-50');
+}
+const activeCategory = document.querySelector('.flex.space-x-3.mb-6 button.bg-primary\\/10');
+if(activeCategory) {
+filterDestinations(activeCategory.textContent, showDomestic);
+}
+}
+function filterDestinations(category, isDomestic) {
+const content = isDomestic ? domesticContent : internationalContent;
+const cards = content.querySelectorAll('.relative.group');
+cards.forEach(card => {
+const cardCategory = card.querySelector('.bg-white\\/20').textContent;
+if(category === '全部' || cardCategory === category) {
+card.style.display = '';
+card.style.opacity = '1';
+} else {
+card.style.opacity = '0.5';
+}
+});
+}
+domesticBtn.addEventListener('click', () => switchContent(true));
+internationalBtn.addEventListener('click', function() {
+internationalBtn.classList.remove('border', 'border-gray-200', 'hover:bg-gray-50');
+internationalBtn.classList.add('bg-primary', 'text-white');
+domesticBtn.classList.remove('bg-primary', 'text-white');
+domesticBtn.classList.add('border', 'border-gray-200', 'hover:bg-gray-50');
+internationalContent.classList.remove('hidden');
+domesticContent.classList.add('hidden');
+});
+const categoryBtns = document.querySelectorAll('.flex.space-x-3.mb-6 button');
+categoryBtns.forEach(btn => {
+btn.addEventListener('click', function() {
+categoryBtns.forEach(b => {
+b.classList.remove('bg-primary/10', 'text-primary');
+b.classList.add('border', 'border-gray-200');
+});
+this.classList.remove('border', 'border-gray-200');
+this.classList.add('bg-primary/10', 'text-primary');
+});
+});
+const inviteButton = document.querySelector('button:contains("邀请成员")');
+if (inviteButton) {
+inviteButton.addEventListener('click', function() {
+const modal = document.createElement('div');
+modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+modal.innerHTML = `
+<div class="bg-white rounded-lg p-6 w-96">
+<h3 class="text-lg font-medium mb-4">邀请成员</h3>
+<input type="text" placeholder="输入邮箱或手机号" class="w-full px-4 py-2 border border-gray-200 rounded mb-4">
+<div class="flex justify-end space-x-2">
+<button class="px-4 py-2 text-sm rounded-button border border-gray-200 hover:bg-gray-50" onclick="this.closest('.fixed').remove()">取消</button>
+<button class="px-4 py-2 text-sm rounded-button bg-primary text-white hover:bg-primary/90">发送邀请</button>
+</div>
+</div>
+`;
+document.body.appendChild(modal);
+});
+}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>老舍虚拟形象交互系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#8E6FF7',secondary:'#D2B48C'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<style>
+:where([class^="ri-"])::before { content: "\f3c2"; }
+body {
+font-family: 'Noto Serif SC', serif;
+background-color: #FAF9F6;
+}
+.scene-bg {
+background-image: url('https://readdy.ai/api/search-image?query=A traditional Chinese tea house interior with wooden furniture, tea sets, and calligraphy scrolls on the walls. The atmosphere is warm and inviting with natural light filtering through paper windows. The style is reminiscent of 1930s Beijing with authentic period details&width=1200&height=800&seq=1&orientation=landscape&flag=2ff0dedfd48eb6f0b4b1aaedf94e92f3');
+background-size: cover;
+background-position: center;
+}
+.virtual-character {
+background-image: url(laoshe.png);
+background-size: contain;
+background-repeat: no-repeat;
+background-position: center;
+}
+</style>
+</head>
+<body class="min-h-screen">
+<div class="flex min-h-screen">
+<div class="w-2/3 relative">
+<div class="scene-bg h-full relative">
+<div class="absolute top-4 left-4 flex space-x-4">
+<button class="bg-white/80 px-4 py-2 rounded-button flex items-center space-x-2">
+<i class="ri-volume-up-line"></i>
+<span>环境音效</span>
+</button>
+</div>
+<div class="virtual-character absolute inset-0 flex items-center justify-center">
+<div class="h-[600px] w-[400px]"></div>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-6 bg-white/90">
+<div class="flex space-x-4 mb-4">
+<button class="bg-primary text-white px-4 py-2 rounded-button whitespace-nowrap">茶馆</button>
+<button class="bg-secondary px-4 py-2 rounded-button whitespace-nowrap">四合院</button>
+<button class="bg-secondary px-4 py-2 rounded-button whitespace-nowrap">民国街头</button>
+</div>
+<div class="flex space-x-2">
+<input type="text" class="flex-1 px-4 py-2 rounded-button border-2 border-gray-200" placeholder="请输入您想和老舍先生交流的内容...">
+<button class="bg-primary text-white px-6 py-2 rounded-button whitespace-nowrap">发送</button>
+</div>
+</div>
+</div>
+</div>
+<div class="w-1/3 bg-white p-6 border-l border-gray-200">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-bold">对话记录</h2>
+<div class="flex space-x-4">
+<button class="text-gray-600 hover:text-primary">
+<i class="ri-file-text-line ri-lg"></i>
+</button>
+<button class="text-gray-600 hover:text-primary">
+<i class="ri-share-line ri-lg"></i>
+</button>
+</div>
+</div>
+<div class="space-y-4 mb-6">
+<div class="bg-gray-50 p-4 rounded-lg">
+<div class="text-sm text-gray-500 mb-1">老舍先生</div>
+<p>欢迎来到我的茶馆！今天想聊些什么呢？要不要谈谈《骆驼祥子》的创作背景？</p>
+</div>
+<div class="bg-primary/10 p-4 rounded-lg">
+<div class="text-sm text-gray-500 mb-1">访客</div>
+<!-- <p>老舍先生您好，我很想了解《骆驼祥子》中虎妞这个人物的原型。</p> -->
+</div>
+</div>
+<div class="border-t border-gray-200 pt-6">
+<h3 class="text-lg font-bold mb-4">相关推荐</h3>
+<div class="space-y-4">
+<div class="bg-gray-50 p-4 rounded-lg">
+<h4 class="font-bold mb-2">《骆驼祥子》片段</h4>
+<p class="text-sm text-gray-600">虎妞是个粗壮的女人，她那青白脸上总带着几分横肉...</p>
+</div>
+<div class="bg-gray-50 p-4 rounded-lg">
+<h4 class="font-bold mb-2">创作手记</h4>
+<p class="text-sm text-gray-600">在创作虎妞这个角色时，我想表现北平市井中的市侩...</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+let chatHistory = []
+let isWaitingForResponse = false;
+async function callChatAPI(message) {
+  try {
+    const response = await fetch("http://180.184.175.69:3000/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer sk-3suUMcrhp3ghB4XWshKlBqZHnmkoDYRuX9XK8ua8wKJcaRbv`
+      },
+      body: JSON.stringify({
+        model: "DeepSeek-V3",
+        messages: [
+          // 系统提示词放在最前面
+          {
+            role: "system",
+            content: "你现在是中国著名作家老舍，正在与访客进行对话。请以老舍的口吻回答问题，体现其谦逊、幽默而又富有智慧的性格特点。回答要体现出对北京文化的深刻理解，以及对人性的洞察。语气要温和亲切，适当使用一些京味儿的表达方式。"
+          },
+          // 追加历史对话记录
+          ...chatHistory
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('API调用失败');
+    }
+
+
+    const data = await response.json();
+    const aiResponse = data.choices[0]?.message?.content || "未能生成有效回复";
+    chatHistory.push({ role: "assistant", content: aiResponse });
+
+    return aiResponse;
+  } catch (error) {
+    console.error('API调用出错:', error);
+    return '抱歉，我现在有点走神了，能请您重复一下刚才的问题吗？';
+  }
+}
+
+document.querySelector('input').addEventListener('keypress', async function(e) {
+
+  if (e.key === 'Enter' && !isWaitingForResponse) {
+    const message = this.value.trim();
+    if (message) {
+      isWaitingForResponse = true;
+      this.value = '';
+      
+      // 添加用户消息
+      addMessage('访客', message);
+      chatHistory.push( {role: "user", content: message} )
+      // 显示加载状态
+      const loadingDiv = document.createElement('div');
+      loadingDiv.className = 'bg-gray-50 p-4 rounded-lg flex items-center space-x-2';
+      loadingDiv.innerHTML = `
+        <div class="text-sm text-gray-500">老舍先生正在思考</div>
+        <div class="flex space-x-1">
+          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+        </div>
+      `;
+      document.querySelector('.space-y-4').appendChild(loadingDiv);
+      
+      // 调用API获取回复
+      const response = await callChatAPI(message);
+      
+      // 移除加载状态
+      loadingDiv.remove();
+      
+      // 添加AI回复
+      addMessage('老舍先生', response);
+      print(response)
+      isWaitingForResponse = false;
+    }
+  }
+});
+function addMessage(role, content) {
+  const dialogueContainer = document.querySelector('.space-y-4');
+  const messageDiv = document.createElement('div');
+  messageDiv.className = role === '访客' ? 'bg-primary/10 p-4 rounded-lg' : 'bg-gray-50 p-4 rounded-lg';
+  messageDiv.innerHTML = `
+    <div class="text-sm text-gray-500 mb-1">${role}</div>
+    <p>${content}</p>
+  `;
+  dialogueContainer.appendChild(messageDiv);
+  messageDiv.scrollIntoView({behavior: 'smooth'});
+}
+// 初始欢迎语
+// addMessage('老舍先生', '欢迎来到我的茶馆！今天想聊些什么呢？要不要谈谈《骆驼祥子》的创作背景？');
+</script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北京文化名人纪念馆导览</title>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>tailwind.config={theme:{extend:{colors:{primary:'#3A8FB7',secondary:'#F7F3E3'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        :where([class^="ri-"])::before { content: "\f3c2"; }
+        body {
+            font-family: 'ZCOOL XiaoWei', serif;
+        }
+        .chinese-title {
+            font-family: 'ZCOOL XiaoWei', serif;
+        }
+        .map-container {
+            background-image: url(image.png);
+            background-position: center;
+            background-size: cover;
+            background-repeat: no-repeat;
+        }
+        .marker {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .marker:hover {
+            transform: scale(1.2);
+        }
+        .mascot {
+            animation: float 3s ease-in-out infinite;
+            cursor: pointer;
+        }
+        .mascot:hover {
+            animation: wiggle 1s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        @keyframes wiggle {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(5deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(-5deg); }
+            100% { transform: rotate(0deg); }
+        }
+        .card-popup {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .marker:hover + .card-popup, .card-popup:hover {
+            opacity: 1;
+            visibility: visible;
+        }
+        .search-input:focus {
+            outline: none;
+        }
+        .cloud-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M25,50 C25,38.954 33.954,30 45,30 C56.046,30 65,38.954 65,50 C65,61.046 56.046,70 45,70 C33.954,70 25,61.046 25,50 Z' fill='%233A8FB7' fill-opacity='0.05'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="bg-gray-50 cloud-pattern">
+    <header class="bg-white bg-opacity-90 shadow-md w-full z-50 fixed top-0">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <h1 class="text-2xl font-bold text-primary mr-2 font-['Pacifico']">logo</h1>
+                <span class="text-xl text-gray-800 chinese-title">AI小铎游故居</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text" placeholder="搜索纪念馆..." class="search-input pl-10 pr-4 py-2 rounded-full bg-gray-100 border-none text-sm w-64">
+                    <div class="absolute left-3 top-2 w-5 h-5 flex items-center justify-center text-gray-500">
+                        <i class="ri-search-line"></i>
+                    </div>
+                </div>
+                <a href="travel-demo.html">
+                    <button class="bg-primary text-white px-4 py-2 !rounded-button whitespace-nowrap flex items-center">
+                        <i class="ri-map-pin-line mr-1"></i> 路线规划
+                    </button>
+                </a>
+                
+                <div class="mascot w-20 h-30" id="mascot">
+                    <img src="xiaoduo.png" alt="北师小铎" class="w-full h-full">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-20 min-h-screen">
+        <div class="container mx-auto px-4 py-6">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="relative map-container h-[calc(100vh-180px)] min-h-[600px]">
+                    <!-- 地图标记 -->
+                    <div class="marker absolute top-[50%] left-[60%] bg-primary bg-opacity-80 text-white p-2 rounded-lg shadow-lg">
+                        <i class="ri-ancient-pavilion-line text-xl"></i>
+                    </div>
+                    <div class="card-popup absolute top-[32%] left-[27%] w-64 bg-white rounded-lg shadow-xl p-4 z-10">
+                        <h3 class="text-lg font-bold mb-2">老舍纪念馆</h3>
+                        <img src="https://public.readdy.ai/ai/img_res/d927a9e0199973ebfb4420873cff6a71.jpg" alt="老舍纪念馆" class="w-full h-32 object-cover rounded mb-2">
+                        <p class="text-sm text-gray-600 mb-2">位于北京市西城区，是纪念中国著名作家老舍先生的场所，展示了其生平和文学成就。</p>
+                        <a href="./laoshe_demo.html">
+                            <button class="bg-primary text-white px-3 py-1 !rounded-button text-sm whitespace-nowrap">了解更多</button>
+                        </a>    
+
+                            
+
+                    </div>
+
+                    <div class="marker absolute top-[27%] left-[45%] bg-primary bg-opacity-80 text-white p-2 rounded-lg shadow-lg">
+                        <i class="ri-ancient-pavilion-line text-xl"></i>
+                    </div>
+                    <div class="card-popup absolute top-[42%] left-[47%] w-64 bg-white rounded-lg shadow-xl p-4 z-10">
+                        <h3 class="text-lg font-bold mb-2">郭沫若纪念馆</h3>
+                        <img src="https://public.readdy.ai/ai/img_res/9718a86d97332adc17b6306534b2698c.jpg" alt="郭沫若纪念馆" class="w-full h-32 object-cover rounded mb-2">
+                        <p class="text-sm text-gray-600 mb-2">位于北京市东城区，是纪念中国著名作家、历史学家、考古学家郭沫若的场所。</p>
+                        <button class="bg-primary text-white px-3 py-1 !rounded-button text-sm whitespace-nowrap">了解更多</button>
+                    </div>
+
+                    <div class="marker absolute top-[40%] left-[40%] bg-primary bg-opacity-80 text-white p-2 rounded-lg shadow-lg">
+                        <i class="ri-ancient-pavilion-line text-xl"></i>
+                    </div>
+                    <div class="card-popup absolute top-[37%] left-[62%] w-64 bg-white rounded-lg shadow-xl p-4 z-10">
+                        <h3 class="text-lg font-bold mb-2">北京鲁迅博物馆</h3>
+                        <img src="https://public.readdy.ai/ai/img_res/97c64e04140ee2119bd73099d4eec1cd.jpg" alt="北京鲁迅博物馆" class="w-full h-32 object-cover rounded mb-2">
+                        <p class="text-sm text-gray-600 mb-2">位于北京市西城区，是为纪念中国现代文学家鲁迅而建立的纪念性博物馆。</p>
+                        <button class="bg-primary text-white px-3 py-1 !rounded-button text-sm whitespace-nowrap">了解更多</button>
+                    </div>
+
+                    <div class="marker absolute top-[60%] left-[45%] bg-primary bg-opacity-80 text-white p-2 rounded-lg shadow-lg">
+                        <i class="ri-ancient-pavilion-line text-xl"></i>
+                    </div>
+                    <div class="card-popup absolute top-[52%] left-[37%] w-64 bg-white rounded-lg shadow-xl p-4 z-10">
+                        <h3 class="text-lg font-bold mb-2">北京李大钊故居</h3>
+                        <img src="https://public.readdy.ai/ai/img_res/06206f13e3eb4e606ab15b54bc958d99.jpg" alt="北京李大钊故居" class="w-full h-32 object-cover rounded mb-2">
+                        <p class="text-sm text-gray-600 mb-2">位于北京市西城区，是中国共产党创始人之一李大钊生前居住过的地方。</p>
+                        <button class="bg-primary text-white px-3 py-1 !rounded-button text-sm whitespace-nowrap">了解更多</button>
+                    </div>
+
+                    <div class="marker absolute top-[17%] left-[48%] bg-primary bg-opacity-80 text-white p-2 rounded-lg shadow-lg">
+                        <i class="ri-ancient-pavilion-line text-xl"></i>
+                    </div>
+                    <div class="card-popup absolute top-[27%] left-[57%] w-64 bg-white rounded-lg shadow-xl p-4 z-10">
+                        <h3 class="text-lg font-bold mb-2">宋庆龄故居</h3>
+                        <img src="https://public.readdy.ai/ai/img_res/bd5ae416a6d38bd19cb06eac76aab243.jpg" alt="宋庆龄故居" class="w-full h-32 object-cover rounded mb-2">
+                        <p class="text-sm text-gray-600 mb-2">位于北京市西城区，是中国伟大的爱国主义者、政治家宋庆龄生前居住的地方。</p>
+                        <button class="bg-primary text-white px-3 py-1 !rounded-button text-sm whitespace-nowrap">了解更多</button>
+                    </div>
+
+                    <div class="marker absolute top-[20%] left-[55%] bg-primary bg-opacity-80 text-white p-2 rounded-lg shadow-lg">
+                        <i class="ri-ancient-pavilion-line text-xl"></i>
+                    </div>
+                    <div class="card-popup absolute top-[47%] left-[42%] w-64 bg-white rounded-lg shadow-xl p-4 z-10">
+                        <h3 class="text-lg font-bold mb-2">茅盾故居</h3>
+                        <img src="https://public.readdy.ai/ai/img_res/2a77541dc6fbb121175eaba6e986d471.jpg" alt="茅盾故居" class="w-full h-32 object-cover rounded mb-2">
+                        <p class="text-sm text-gray-600 mb-2">位于北京市东城区，是中国著名作家、文学评论家茅盾生前居住的地方。</p>
+                        <button class="bg-primary text-white px-3 py-1 !rounded-button text-sm whitespace-nowrap">了解更多</button>
+                    </div>
+
+                    <div class="marker absolute top-[75%] left-[60%] bg-primary bg-opacity-80 text-white p-2 rounded-lg shadow-lg">
+                        <i class="ri-ancient-pavilion-line text-xl"></i>
+                    </div>
+                    <div class="card-popup absolute top-[62%] left-[72%] w-64 bg-white rounded-lg shadow-xl p-4 z-10">
+                        <h3 class="text-lg font-bold mb-2">曹雪芹故居纪念馆</h3>
+                        <img src="https://public.readdy.ai/ai/img_res/39c5a1e20a2c483ba60ddce7ba5511d1.jpg" alt="曹雪芹故居纪念馆" class="w-full h-32 object-cover rounded mb-2">
+                        <p class="text-sm text-gray-600 mb-2">位于北京市西城区，是纪念《红楼梦》作者曹雪芹的场所，展示了其生平和文学成就。</p>
+                        <button class="bg-primary text-white px-3 py-1 !rounded-button text-sm whitespace-nowrap">了解更多</button>
+                    </div>
+
+                    <!-- 地图控制按钮 -->
+                    <div class="absolute bottom-5 right-5 flex flex-col space-y-2">
+                        <button class="bg-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center">
+                            <i class="ri-add-line text-xl text-gray-700"></i>
+                        </button>
+                        <button class="bg-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center">
+                            <i class="ri-subtract-line text-xl text-gray-700"></i>
+                        </button>
+                        <button class="bg-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center">
+                            <i class="ri-compass-3-line text-xl text-gray-700"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 右侧快速导航 -->
+    <div class="fixed right-5 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-90 rounded-lg shadow-lg p-4 z-40">
+        <h3 class="text-lg font-bold mb-3 text-primary border-b pb-2">纪念馆导航</h3>
+        <ul class="space-y-2">
+            <li><a href="laoshe_demo.html" class="flex items-center text-gray-700 hover:text-primary"><i class="ri-map-pin-line mr-2"></i> 老舍纪念馆</a></li>
+            <li><a href="#" class="flex items-center text-gray-700 hover:text-primary"><i class="ri-map-pin-line mr-2"></i> 郭沫若纪念馆</a></li>
+            <li><a href="#" class="flex items-center text-gray-700 hover:text-primary"><i class="ri-map-pin-line mr-2"></i> 北京鲁迅博物馆</a></li>
+            <li><a href="#" class="flex items-center text-gray-700 hover:text-primary"><i class="ri-map-pin-line mr-2"></i> 北京李大钊故居</a></li>
+            <li><a href="#" class="flex items-center text-gray-700 hover:text-primary"><i class="ri-map-pin-line mr-2"></i> 宋庆龄故居</a></li>
+            <li><a href="#" class="flex items-center text-gray-700 hover:text-primary"><i class="ri-map-pin-line mr-2"></i> 茅盾故居</a></li>
+            <li><a href="#" class="flex items-center text-gray-700 hover:text-primary"><i class="ri-map-pin-line mr-2"></i> 曹雪芹故居纪念馆</a></li>
+        </ul>
+        <div class="mt-4 pt-3 border-t">
+            <button class="bg-primary text-white w-full py-2 !rounded-button whitespace-nowrap flex items-center justify-center">
+                <i class="ri-route-line mr-1"></i> 规划游览路线
+            </button>
+        </div>
+    </div>
+
+    <!-- 吉祥物弹窗 -->
+    <div id="mascotPopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full relative">
+            <button id="closePopup" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                <i class="ri-close-line text-xl"></i>
+            </button>
+            <div class="flex items-center mb-4">
+                <img src="xiaoduo.png" alt="北师小铎" class="w-20 h-30 mr-3">
+                <div>
+                    <h3 class="text-xl font-bold text-primary">北师小铎</h3>
+                    <p class="text-gray-600">您的文化导览小助手</p>
+                </div>
+            </div>
+            <p class="mb-4">您好！我是北师小铎，很高兴为您提供北京文化名人纪念馆导览服务。需要我为您推荐游览路线或提供更详细的信息吗？</p>
+            <div class="grid grid-cols-2 gap-3">
+                <a href="travel-demo.html" class="block">  <!-- 新增a标签 -->
+                    <button class="w-full bg-primary text-white py-2 !rounded-button whitespace-nowrap">
+                        进入交互助手
+                    </button>
+                </a>
+                
+                <a href="./recommended-routes" class="block">  <!-- 新增a标签 -->
+                    <button class="w-full border border-primary text-primary py-2 !rounded-button whitespace-nowrap">
+                        查看推荐路线
+                    </button>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mascot = document.getElementById('mascot');
+            const mascotPopup = document.getElementById('mascotPopup');
+            const closePopup = document.getElementById('closePopup');
+            
+            mascot.addEventListener('click', function() {
+                mascotPopup.classList.remove('hidden');
+            });
+            
+            closePopup.addEventListener('click', function() {
+                mascotPopup.classList.add('hidden');
+            });
+            
+            // 点击弹窗外部关闭弹窗
+            mascotPopup.addEventListener('click', function(e) {
+                if (e.target === mascotPopup) {
+                    mascotPopup.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
